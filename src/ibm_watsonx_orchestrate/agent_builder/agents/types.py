@@ -141,6 +141,7 @@ class AgentStyle(str, Enum):
     DEFAULT = "default"
     REACT = "react"
     PLANNER = "planner"
+    REACT_INTRINSIC = "react_intrinsic"
 
     def __str__(self):
         return self.value 
