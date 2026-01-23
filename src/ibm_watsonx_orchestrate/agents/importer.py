@@ -174,6 +174,7 @@ def get_environment_by_url(instance_url: str) -> str | None:
 def import_agents_from_file(
     file: str | Path,
     *,
+    app_id: str | None = None,
     instance_url: str | None = None,
     apikey: str | None = None,
     username: str | None = None,
@@ -181,14 +182,16 @@ def import_agents_from_file(
 ) -> list[AgentSpec]:
     """Import one or more agents from a spec file into the specified or active environment.
 
-    This is equivalent to running ``orchestrate agents import -f <file>`` but is implemented
-    as a direct call into the import logic rather than invoking the CLI.
+    This is equivalent to running ``orchestrate agents import -f <file>`` (and optionally
+    ``--app-id <app_id>``) but is implemented as a direct call into the import logic rather
+    than invoking the CLI.
     
     **Note**: If you provide an `instance_url`, the active environment will be changed and will
     NOT be automatically restored. This is optimal for batch operations where you're importing
     multiple agents to the same environment.
 
     :param file: Path to a ``.yaml``, ``.yml``, ``.json`` or ``.py`` agent definition file.
+    :param app_id: App id of the connection to associate with the imported external agent.
     :param instance_url: Optional Watsonx Orchestrate instance URL to import to. The function will
                         find the matching environment from your config and switch to it. If not
                         provided, uses the active environment. The environment will remain active
@@ -250,7 +253,7 @@ def import_agents_from_file(
         try:
             agent_specs: list[AgentSpec] = controller.import_agent(
                 file=str(file_path),
-                app_id=None,
+                app_id=app_id,
             )
             controller.publish_or_update_agents(agent_specs)
             return agent_specs
