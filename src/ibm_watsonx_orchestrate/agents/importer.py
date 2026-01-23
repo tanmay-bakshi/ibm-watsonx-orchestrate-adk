@@ -8,10 +8,15 @@ from ibm_watsonx_orchestrate.cli.commands.agents.agents_controller import Agents
 from ibm_watsonx_orchestrate.cli.commands.environment.environment_controller import activate
 from ibm_watsonx_orchestrate.cli.config import (
     Config,
+    AUTH_CONFIG_FILE_FOLDER,
+    AUTH_CONFIG_FILE,
+    AUTH_SECTION_HEADER,
+    AUTH_MCSP_TOKEN_OPT,
     CONTEXT_SECTION_HEADER,
     CONTEXT_ACTIVE_ENV_OPT,
     ENVIRONMENTS_SECTION_HEADER,
 )
+from ibm_watsonx_orchestrate.client.utils import check_token_validity
 from ibm_watsonx_orchestrate.utils.exceptions import BadRequest
 
 
@@ -238,9 +243,25 @@ def import_agents_from_file(
                 f"Use 'orchestrate env add' to create a new environment with this URL."
             )
         
-        # Only switch if we're not already on the target environment
+        # Check if we're already on the target environment
         current_environment = get_active_environment()
+        needs_auth = False
+        
         if current_environment != target_environment:
+            # Different environment - need to switch
+            needs_auth = True
+        else:
+            # Same environment - check if token is still valid
+            auth_cfg = Config(AUTH_CONFIG_FILE_FOLDER, AUTH_CONFIG_FILE)
+            existing_auth_config = auth_cfg.get(AUTH_SECTION_HEADER).get(target_environment, {})
+            existing_token = existing_auth_config.get(AUTH_MCSP_TOKEN_OPT) if existing_auth_config else None
+            
+            if not check_token_validity(existing_token):
+                # Token expired - need to re-authenticate
+                needs_auth = True
+        
+        # Authenticate if needed
+        if needs_auth:
             set_active_environment(
                 target_environment,
                 apikey=apikey,
