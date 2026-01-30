@@ -851,6 +851,35 @@ class AgentsController:
             self.get_assistant_client().update(agent_id, agent.model_dump(exclude_none=True, by_alias=True))
             logger.info(f"Assistant Agent '{agent.name}' updated successfully")
 
+    def change_agent_style(self, agent_id: str, style: AgentStyle) -> None:
+        """Change the style for a native agent by id.
+
+        :param agent_id: The id of the agent to update.
+        :param style: The new style for the agent.
+        """
+        agent_data = self.get_native_client().get_draft_by_id(agent_id)
+        if agent_data == "":
+            logger.error(f"No native agent found with id '{agent_id}'. Failed to update agent style.")
+            sys.exit(1)
+
+        agent_name = agent_data.get("name")
+        if agent_name is None or len(str(agent_name).strip()) == 0:
+            agent_name = agent_id
+
+        current_style = agent_data.get("style")
+        if current_style is not None and current_style == style.value:
+            logger.info(f"Agent '{agent_name}' already uses style '{style.value}'.")
+            return
+
+        response = self.get_native_client().update(agent_id, {"style": style.value})
+        _raise_guidelines_warning(response)
+
+        if current_style is None:
+            logger.info(f"Agent '{agent_name}' style updated to '{style.value}'.")
+            return
+
+        logger.info(f"Agent '{agent_name}' style updated from '{current_style}' to '{style.value}'.")
+
     @staticmethod
     def persist_record(agent: Agent, **kwargs):
         if "output_file" in kwargs and kwargs["output_file"] is not None:
@@ -1741,5 +1770,4 @@ class AgentsController:
     @staticmethod
     def _format_agent_display_name(agent: AnyAgentT) -> str:
         return f"{agent.name} ({agent.display_name})" if agent.display_name and agent.name != agent.display_name else agent.name
-
 

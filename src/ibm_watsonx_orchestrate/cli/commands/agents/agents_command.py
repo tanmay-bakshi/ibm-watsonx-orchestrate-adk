@@ -286,3 +286,22 @@ def undeploy_agent(
 ):
     agents_controller = AgentsController()
     agents_controller.undeploy_agent(name=name)
+
+@agents_app.command(name="change-style", help="Change a native agent's style by id")
+def change_style(
+    agent_id: Annotated[
+        str,
+        typer.Option("--id", help="Agent id"),
+    ],
+    style: Annotated[
+        AgentStyle,
+        typer.Option("--style", help="The style to apply"),
+    ],
+):
+    """Change the style of a native agent by id.
+
+    :param agent_id: The id of the agent to update.
+    :param style: The new style for the agent.
+    """
+    agents_controller = AgentsController()
+    agents_controller.change_agent_style(agent_id=agent_id, style=style)

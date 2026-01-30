@@ -212,3 +212,18 @@ class TestAgentUndeploy:
             agents_command.undeploy_agent(name="test_native_agent")
 
             mock.assert_called_once_with(name="test_native_agent")
+
+class TestAgentChangeStyle:
+    def test_agent_change_style(self):
+        with patch(
+            "ibm_watsonx_orchestrate.cli.commands.agents.agents_controller.AgentsController.change_agent_style"
+        ) as mock:
+            agents_command.change_style(
+                agent_id="agent-123",
+                style=AgentStyle.DEFAULT,
+            )
+
+            mock.assert_called_once_with(
+                agent_id="agent-123",
+                style=AgentStyle.DEFAULT,
+            )
