@@ -142,6 +142,7 @@ class AgentStyle(str, Enum):
     REACT = "react"
     PLANNER = "planner"
     REACT_INTRINSIC = "react_intrinsic"
+    CUSTOM = "custom"
 
     def __str__(self):
         return self.value 
