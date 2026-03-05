@@ -800,11 +800,12 @@ class UserFormButton(BaseModel):
             model_spec["kind"] = self.kind
         if self.display_name:
             model_spec["display_name"] = self.display_name
-        if self.visible:
-            model_spec["visible"] = self.visible
-        if self.edge_id: 
+        # Always include visible property (it's a boolean, not optional)
+        model_spec["visible"] = self.visible
+        # Include edge_id when button is connected to a node
+        if self.edge_id:
             model_spec["edge_id"] = self.edge_id
-        return model_spec    
+        return model_spec
 
 class UserForm(BaseModel):
 
@@ -2025,11 +2026,13 @@ class TaskData(NamedTuple):
 class TaskEventType(Enum):
  
     ON_TASK_WAIT = "task:on_task_wait" # the task is waiting for inputs before proceeding
+    ON_TASK_CALLBACK = "tempus:callback"
     ON_TASK_START = "task:on_task_start"
     ON_TASK_END = "task:on_task_end"
     ON_TASK_STREAM = "task:on_task_stream"
     ON_TASK_ERROR = "task:on_task_error"
-    ON_TASK_RESUME= "task:on_task_resume"
+    ON_TASK_RESUME = "task:on_task_resume"
+    ON_TASK_MESSAGE = "task:on_task_message"
 
 class FlowData(BaseModel):
     '''This class represents the data that is passed between tasks in a flow.'''
@@ -2069,7 +2072,9 @@ class FlowEventType(Enum):
     ON_FLOW_START = "flow:on_flow_start"
     ON_FLOW_END = "flow:on_flow_end"
     ON_FLOW_ERROR = "flow:on_flow_error"
+    ON_FLOW_WAIT = "flow:on_flow_wait"
     ON_FLOW_RESUME = "flow:on_flow_resume"
+    ON_FLOW_MESSAGE = "flow:on_flow_message"
 
 @dataclass
 class FlowEvent:

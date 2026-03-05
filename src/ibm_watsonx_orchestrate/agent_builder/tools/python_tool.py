@@ -9,13 +9,12 @@ import logging
 
 from pydantic import TypeAdapter, BaseModel
 
-from ibm_watsonx_orchestrate.run.context import AgentRun
 from ibm_watsonx_orchestrate.utils.utils import yaml_safe_load
 from ibm_watsonx_orchestrate.utils.file_manager import safe_open
 from ibm_watsonx_orchestrate.agent_builder.connections import ExpectedCredentials
 from .base_tool import BaseTool
 from .types import JsonSchemaTokens, PythonToolKind, ToolSpec, ToolPermission, ToolRequestBody, ToolResponseBody, JsonSchemaObject, ToolBinding, \
-    PythonToolBinding
+    PythonToolBinding, ToolResponseFormat
 from ibm_watsonx_orchestrate.utils.exceptions import BadRequest, ToolContextException
 from ibm_watsonx_orchestrate.agent_builder.tools._internal.tool_response import ToolResponse
 
@@ -80,7 +79,6 @@ def _merge_dynamic_schema(base_schema: ToolRequestBody | ToolResponseBody, dynam
             # JsonSchemaObject has extra='allow'
             setattr(prop_schema, TOOLS_DYNAMIC_PARAM_FLAG , True)
         base_schema.properties.update(dynamic_schema.properties)
-        setattr(base_schema, TOOLS_DYNAMIC_SCHEMA_FLAG, True)
 
 
 class PythonTool(BaseTool):
@@ -99,6 +97,7 @@ class PythonTool(BaseTool):
                 enable_dynamic_output_schema: bool = False,
                 dynamic_input_schema: Optional[ToolRequestBody] = None,
                 dynamic_output_schema: Optional[ToolResponseBody] = None,
+                response_format: Optional[ToolResponseFormat] = None,
                 ):
         self.fn = fn
         self.name = name
@@ -116,6 +115,7 @@ class PythonTool(BaseTool):
         self.enable_dynamic_output_schema = enable_dynamic_output_schema
         self.dynamic_input_schema = dynamic_input_schema
         self.dynamic_output_schema = dynamic_output_schema
+        self.response_format = response_format
 
     def __call__(self, *args, **kwargs):
 
@@ -125,6 +125,7 @@ class PythonTool(BaseTool):
         if run_context_param:
             context_param_value = kwargs.get(run_context_param)
             if context_param_value:
+                from ibm_watsonx_orchestrate.run.context import AgentRun
                 context_object = context_param_value if isinstance(context_param_value,AgentRun) \
                     else AgentRun(request_context=context_param_value)
                 kwargs[run_context_param] = context_object
@@ -132,10 +133,6 @@ class PythonTool(BaseTool):
 
         result = self.fn(*args, **kwargs)
         context_updates = context_object.get_context_updates() if context_object else {}
-
-        # Temporarily needed to address a backend limitation with nesting bytes
-        if type(result) == bytes:
-            return result
 
         return ToolResponse(content=result,context_updates=context_updates)
 
@@ -168,7 +165,8 @@ class PythonTool(BaseTool):
             name=self.name or self.fn.__name__,
             display_name=self.display_name,
             description=_desc,
-            permission=self.permission
+            permission=self.permission,
+            response_format=self.response_format if self.response_format else ToolResponseFormat.CONTENT
         )
 
         spec.binding = ToolBinding(python=PythonToolBinding(function=''))
@@ -246,6 +244,7 @@ class PythonTool(BaseTool):
         # Merge dynamic input schema if provided
         if self.enable_dynamic_input_schema:
             _merge_dynamic_schema(spec.input_schema, self.dynamic_input_schema)
+            setattr(spec.input_schema, TOOLS_DYNAMIC_SCHEMA_FLAG, True)
         
         _validate_input_schema(spec.input_schema, self.enable_dynamic_input_schema)
 
@@ -271,6 +270,7 @@ class PythonTool(BaseTool):
 
         if self.enable_dynamic_output_schema:
             _merge_dynamic_schema(spec.output_schema, self.dynamic_output_schema)
+            setattr(spec.output_schema, TOOLS_DYNAMIC_SCHEMA_FLAG, True)
         
          # Validate the generated schema still conforms to the requirement for a join tool
         if self.kind == PythonToolKind.JOIN_TOOL:
@@ -433,6 +433,7 @@ def tool(
     enable_dynamic_output_schema: bool = False,
     dynamic_input_schema: Optional[ToolRequestBody | dict] = None,
     dynamic_output_schema: Optional[ToolResponseBody | dict] = None,
+    response_format: Optional[ToolResponseFormat] = None,
 ) -> Callable[[{__name__, __doc__}], PythonTool]:
     """
     Decorator to convert a python function into a callable tool.
@@ -446,9 +447,10 @@ def tool(
     :param enable_dynamic_output_schema: if dynamic output schema is enabled
     :param dynamic_input_schema: the dynamic input schema for the tool - used to validate params passed under **kwargs
     :param dynamic_output_schema: the dynamic output schema for the tool - used to validate dynamic return values
+    :param response_format: the response format for the tool - either 'content' or 'content_and_artifact'
     :return:
     """
-    # inspiration: https://github.com/pydantic/pydantic/blob/main/pydantic/validate_call_decorator.py    
+    # inspiration: https://github.com/pydantic/pydantic/blob/main/pydantic/validate_call_decorator.py
     if dynamic_input_schema and not isinstance(dynamic_input_schema, ToolRequestBody):
         dynamic_input_schema = ToolRequestBody(**dynamic_input_schema)
 
@@ -470,7 +472,8 @@ def tool(
             enable_dynamic_input_schema=enable_dynamic_input_schema,
             enable_dynamic_output_schema=enable_dynamic_output_schema,
             dynamic_input_schema=dynamic_input_schema,
-            dynamic_output_schema=dynamic_output_schema
+            dynamic_output_schema=dynamic_output_schema,
+            response_format=response_format
         )
             
         _all_tools.append(t)
