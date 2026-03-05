@@ -141,7 +141,6 @@ class AgentStyle(str, Enum):
     DEFAULT = "default"
     REACT = "react"
     PLANNER = "planner"
-    REACT_INTRINSIC = "react_intrinsic"
     CUSTOM = "custom"
     CUSTOMER_CARE = "experimental_customer_care"
     REACT_INTRINSIC = "react_intrinsic"
