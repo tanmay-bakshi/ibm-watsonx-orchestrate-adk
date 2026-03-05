@@ -693,7 +693,7 @@ class AgentsController:
             matching_toolkit = client.get_draft_by_id(id)
             name = matching_toolkit.get("name")
             if not name:
-                logger.error(f"Failed to find knowledge base. No knowledge base found with the id '{id}'")
+                logger.error(f"Failed to find toolkit. No toolkit found with the id '{id}'")
                 sys.exit(1)
             ref_toolkits.append(name)
         ref_agent.toolkits = ref_toolkits
