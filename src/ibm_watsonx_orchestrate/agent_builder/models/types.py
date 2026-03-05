@@ -19,6 +19,7 @@ class  ModelProvider(str, Enum):
     MISTRAL_AI = 'mistral-ai'
     JINA = 'jina'
     OLLAMA = 'ollama'
+    VLLM = 'vllm'
     OPENROUTER = 'openrouter'
     STABILITY_AI = 'stability-ai'
     TOGETHER_AI = 'together-ai'

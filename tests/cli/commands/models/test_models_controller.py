@@ -550,6 +550,7 @@ class TestImportModel:
                "watsonx",
                "mistral-ai",
                "ollama",
+               "vllm",
                "openrouter"
             ]
     )
@@ -589,6 +590,7 @@ class TestImportModel:
                "watsonx",
                "mistral-ai",
                "ollama",
+               "vllm",
                "openrouter"
             ]
     )
@@ -629,6 +631,7 @@ class TestImportModel:
                "watsonx",
                "mistral-ai",
                "ollama",
+               "vllm",
                "openrouter"
             ]
     )
@@ -717,6 +720,7 @@ class TestCreateModel:
                "watsonx",
                "mistral-ai",
                "ollama",
+               "vllm",
                "openrouter"
             ]
     )
@@ -750,6 +754,7 @@ class TestCreateModel:
                ("watsonx", {"api_key": "test_api_key", "watsonx_space_id": "test_space_id"}),
                ("mistral-ai", {"api_key": "test_api_key"}),
                ("ollama", {"api_key": "test_api_key", "custom_host": "test_custom_host"}),
+               ("vllm", {"api_key": "test_api_key", "custom_host": "test_custom_host"}),
                ("openrouter", {"api_key": "test_api_key"})
             ]
     )

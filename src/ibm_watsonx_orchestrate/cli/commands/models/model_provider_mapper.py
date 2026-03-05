@@ -105,6 +105,7 @@ PROVIDER_REQUIRED_FIELDS = {k:['api_key'] for k in ModelProvider}
 PROVIDER_REQUIRED_FIELDS.update({
     ModelProvider.WATSONX: PROVIDER_REQUIRED_FIELDS[ModelProvider.WATSONX] + [{'watsonx_space_id', 'watsonx_project_id', 'watsonx_deployment_id'}],
     ModelProvider.OLLAMA: PROVIDER_REQUIRED_FIELDS[ModelProvider.OLLAMA] + ['custom_host'],
+    ModelProvider.VLLM: PROVIDER_REQUIRED_FIELDS[ModelProvider.VLLM] + ['custom_host'],
     ModelProvider.BEDROCK: [{'api_key', ('aws_secret_access_key', 'aws_access_key_id')}],
 })
 
