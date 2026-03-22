@@ -250,6 +250,7 @@ class TestChatAsk:
     def test_chat_ask_handles_failed_run(self, caplog):
         """Test handling of failed run status."""
         with patch("ibm_watsonx_orchestrate.cli.commands.chat.chat_controller.create_run_client") as mock_create_client, \
+             patch("ibm_watsonx_orchestrate.cli.commands.chat.chat_controller.create_threads_client") as mock_create_threads, \
              patch("ibm_watsonx_orchestrate.cli.commands.chat.chat_controller.Prompt.ask") as mock_prompt, \
              patch("ibm_watsonx_orchestrate.cli.commands.chat.chat_controller.get_agent_id_by_name") as mock_get_agent_id:
             
@@ -272,6 +273,7 @@ class TestChatAsk:
             chat_command.chat_ask(agent_name="test-agent", include_reasoning=False)
             
             mock_get_agent_id.assert_called_once_with("test-agent")
+            mock_create_threads.assert_not_called()
             captured = caplog.text
             assert "Run failed with status" in captured
     
@@ -361,4 +363,3 @@ class TestChatAsk:
             # Verify that SystemExit is raised when agent doesn't exist
             with pytest.raises(SystemExit) as exc_info:
                 chat_command.chat_ask(agent_name="nonexistent-agent", include_reasoning=False)
-            

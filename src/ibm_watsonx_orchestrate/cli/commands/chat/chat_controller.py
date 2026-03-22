@@ -916,7 +916,7 @@ def _poll_and_display_async_messages(
 
 async def _execute_agent_interaction_websocket(
     run_client: RunClient,
-    threads_client: ThreadsClient,
+    threads_client: ThreadsClient | None,
     message: str,
     agent_id: str,
     include_reasoning: bool,
@@ -964,6 +964,9 @@ async def _execute_agent_interaction_websocket(
             console.print(f"[red]Error: {error_msg}[/red]")
             logger.error(f"Run failed with status: {run_status}")
             return None
+
+        if threads_client is None:
+            threads_client = create_threads_client()
         
         # Step 3: Get the first message and check is_async flag
         thread_messages_response = threads_client.get_thread_messages(thread_id)
@@ -1410,7 +1413,7 @@ async def _execute_agent_interaction_websocket(
         raise  # Re-raise to trigger HTTP fallback
 
 
-def _execute_agent_interaction(run_client: RunClient, threads_client: ThreadsClient, message: str, agent_id: str, include_reasoning: bool, agent_name: str, thread_id: Optional[str] = None,
+def _execute_agent_interaction(run_client: RunClient, threads_client: ThreadsClient | None, message: str, agent_id: str, include_reasoning: bool, agent_name: str, thread_id: Optional[str] = None,
                                 capture_logs: bool = False, return_agent_interaction_result: bool = False) -> Optional[str] | Optional[AgentInteractionResult]:
     """
     Execute agent interaction: send message, wait for response, display answer, and return thread_id to keep the conversation context in interactive mode.
@@ -1445,6 +1448,9 @@ def _execute_agent_interaction(run_client: RunClient, threads_client: ThreadsCli
             console.print(f"[red]Error: {error_msg}[/red]")
             logger.error(f"Run failed with status: {run_status}")
             return
+
+        if threads_client is None:
+            threads_client = create_threads_client()
         
         thread_messages_response = threads_client.get_thread_messages(thread_id)
         
@@ -1664,7 +1670,7 @@ def _execute_agent_interaction(run_client: RunClient, threads_client: ThreadsCli
 
 async def execute_agent_interaction_with_fallback_async(
     run_client: RunClient,
-    threads_client: ThreadsClient,
+    threads_client: ThreadsClient | None,
     message: str,
     agent_id: str,
     include_reasoning: bool,
@@ -1707,7 +1713,7 @@ async def execute_agent_interaction_with_fallback_async(
 
 def execute_agent_interaction_with_fallback(
     run_client: RunClient,
-    threads_client: ThreadsClient,
+    threads_client: ThreadsClient | None,
     message: str,
     agent_id: str,
     include_reasoning: bool,
@@ -1762,7 +1768,7 @@ def chat_ask_interactive(
     agent_id = get_agent_id_by_name(agent_name)
 
     run_client = create_run_client()
-    threads_client = create_threads_client()
+    threads_client: ThreadsClient | None = None
     
     # Only show thread_id info if explicitly provided via command line
     if thread_id:
