@@ -140,6 +140,7 @@ class ChatWithDocsConfig(BaseModel):
 class AgentStyle(str, Enum):
     DEFAULT = "default"
     REACT = "react"
+    REACT_INTRINSIC = "react_intrinsic"
     PLANNER = "planner"
     CUSTOM = "custom"
 
