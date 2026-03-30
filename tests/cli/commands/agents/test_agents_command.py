@@ -220,7 +220,7 @@ class TestAgentUndeploy:
             mock.assert_called_once_with(name="test_native_agent")
 
 class TestAgentChangeStyle:
-    def test_agent_change_style(self):
+    def test_agent_change_style_by_id(self):
         with patch(
             "ibm_watsonx_orchestrate.cli.commands.agents.agents_controller.AgentsController.change_agent_style"
         ) as mock:
@@ -231,5 +231,51 @@ class TestAgentChangeStyle:
 
             mock.assert_called_once_with(
                 agent_id="agent-123",
+                agent_name=None,
                 style=AgentStyle.DEFAULT,
             )
+
+    def test_agent_change_style_by_name(self):
+        with patch(
+            "ibm_watsonx_orchestrate.cli.commands.agents.agents_controller.AgentsController.change_agent_style"
+        ) as mock:
+            agents_command.change_style(
+                agent_name="finance_agent",
+                style=AgentStyle.DEFAULT,
+            )
+
+            mock.assert_called_once_with(
+                agent_id=None,
+                agent_name="finance_agent",
+                style=AgentStyle.DEFAULT,
+            )
+
+    def test_agent_change_style_requires_exactly_one_identifier(self):
+        with patch(
+            "ibm_watsonx_orchestrate.cli.commands.agents.agents_controller.AgentsController.change_agent_style"
+        ) as mock:
+            try:
+                agents_command.change_style(
+                    style=AgentStyle.DEFAULT,
+                )
+                assert False, "Expected ValueError to be raised"
+            except ValueError as e:
+                assert "Specify exactly one of --id or --name." in str(e)
+
+            mock.assert_not_called()
+
+    def test_agent_change_style_rejects_multiple_identifiers(self):
+        with patch(
+            "ibm_watsonx_orchestrate.cli.commands.agents.agents_controller.AgentsController.change_agent_style"
+        ) as mock:
+            try:
+                agents_command.change_style(
+                    agent_id="agent-123",
+                    agent_name="finance_agent",
+                    style=AgentStyle.DEFAULT,
+                )
+                assert False, "Expected ValueError to be raised"
+            except ValueError as e:
+                assert "Specify exactly one of --id or --name." in str(e)
+
+            mock.assert_not_called()

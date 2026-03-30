@@ -1082,7 +1082,7 @@ class TestAgentsControllerUpdateAgent:
             assert f"Assistant Agent '{agent.name}' updated successfully" in captured
 
 class TestAgentsControllerChangeAgentStyle:
-    def test_change_agent_style_updates_agent(self, caplog):
+    def test_change_agent_style_updates_agent_by_id(self, caplog):
         with patch("ibm_watsonx_orchestrate.cli.commands.agents.agents_controller.AgentsController.get_native_client") as mock_get_client:
             mock_client = MagicMock()
             mock_client.get_draft_by_id.return_value = {
@@ -1104,7 +1104,30 @@ class TestAgentsControllerChangeAgentStyle:
             )
             assert "style updated from 'default' to 'planner'" in caplog.text
 
-    def test_change_agent_style_missing_agent(self, caplog):
+    def test_change_agent_style_updates_agent_by_name(self, caplog):
+        with patch("ibm_watsonx_orchestrate.cli.commands.agents.agents_controller.AgentsController.get_native_client") as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.get_draft_by_name.return_value = [{
+                "id": "agent123",
+                "name": "finance_agent",
+                "style": AgentStyle.DEFAULT.value,
+            }]
+            mock_client.update.return_value = AgentUpsertResponse()
+            mock_get_client.return_value = mock_client
+
+            controller = AgentsController()
+
+            with caplog.at_level(logging.INFO):
+                controller.change_agent_style(agent_id=None, agent_name="finance_agent", style=AgentStyle.PLANNER)
+
+            mock_client.get_draft_by_name.assert_called_once_with("finance_agent")
+            mock_client.update.assert_called_once_with(
+                "agent123",
+                {"style": AgentStyle.PLANNER.value},
+            )
+            assert "style updated from 'default' to 'planner'" in caplog.text
+
+    def test_change_agent_style_missing_agent_by_id(self, caplog):
         with patch("ibm_watsonx_orchestrate.cli.commands.agents.agents_controller.AgentsController.get_native_client") as mock_get_client:
             mock_client = MagicMock()
             mock_client.get_draft_by_id.return_value = ""
@@ -1117,6 +1140,45 @@ class TestAgentsControllerChangeAgentStyle:
                     controller.change_agent_style("agent123", AgentStyle.PLANNER)
 
             assert "No native agent found with id 'agent123'" in caplog.text
+
+    def test_change_agent_style_missing_agent_by_name(self, caplog):
+        with patch("ibm_watsonx_orchestrate.cli.commands.agents.agents_controller.AgentsController.get_native_client") as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.get_draft_by_name.return_value = []
+            mock_get_client.return_value = mock_client
+
+            controller = AgentsController()
+
+            with caplog.at_level(logging.ERROR):
+                with pytest.raises(SystemExit):
+                    controller.change_agent_style(agent_id=None, agent_name="finance_agent", style=AgentStyle.PLANNER)
+
+            assert "No native agent found with name 'finance_agent'" in caplog.text
+
+    def test_change_agent_style_rejects_duplicate_agent_names(self, caplog):
+        with patch("ibm_watsonx_orchestrate.cli.commands.agents.agents_controller.AgentsController.get_native_client") as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.get_draft_by_name.return_value = [
+                {
+                    "id": "agent123",
+                    "name": "finance_agent",
+                    "style": AgentStyle.DEFAULT.value,
+                },
+                {
+                    "id": "agent456",
+                    "name": "finance_agent",
+                    "style": AgentStyle.REACT.value,
+                },
+            ]
+            mock_get_client.return_value = mock_client
+
+            controller = AgentsController()
+
+            with caplog.at_level(logging.ERROR):
+                with pytest.raises(SystemExit):
+                    controller.change_agent_style(agent_id=None, agent_name="finance_agent", style=AgentStyle.PLANNER)
+
+            assert "Multiple native agents found with name 'finance_agent'" in caplog.text
 
 class MockConnectionClient:
     def __init__(self, get_response=[], get_draft_by_id_response=None, get_draft_by_app_id_reponse=None):
@@ -1816,4 +1878,3 @@ class TestAgentDeploy:
                 controller.undeploy_agent("finance_agent")
 
             assert "Error undeploying agent" in caplog.text
-

@@ -1180,27 +1180,54 @@ class AgentsController:
             self.get_assistant_client().update(agent_id, agent.model_dump(exclude_none=True, by_alias=True))
             logger.info(f"Assistant Agent '{agent.name}' updated successfully")
 
-    def change_agent_style(self, agent_id: str, style: AgentStyle) -> None:
-        """Change the style of a native agent by id.
+    def change_agent_style(self, agent_id: str | None, style: AgentStyle, agent_name: str | None = None) -> None:
+        """Change the style of a native agent by id or name.
 
         :param agent_id: The id of the agent to update.
         :param style: The new style for the agent.
+        :param agent_name: The name of the agent to update.
         """
-        agent_data = self.get_native_client().get_draft_by_id(agent_id)
-        if isinstance(agent_data, str):
-            logger.error(f"No native agent found with id '{agent_id}'. Failed to update agent style.")
+        has_agent_id: bool = agent_id is not None
+        has_agent_name: bool = agent_name is not None
+        if has_agent_id == has_agent_name:
+            logger.error("Specify exactly one of agent_id or agent_name. Failed to update agent style.")
             sys.exit(1)
+
+        native_client = self.get_native_client()
+        resolved_agent_id: str
+
+        if agent_id is not None:
+            agent_data = native_client.get_draft_by_id(agent_id)
+            if isinstance(agent_data, str):
+                logger.error(f"No native agent found with id '{agent_id}'. Failed to update agent style.")
+                sys.exit(1)
+
+            resolved_agent_id = agent_id
+        else:
+            agent_data_by_name = native_client.get_draft_by_name(agent_name)
+            if len(agent_data_by_name) == 0:
+                logger.error(f"No native agent found with name '{agent_name}'. Failed to update agent style.")
+                sys.exit(1)
+            if len(agent_data_by_name) > 1:
+                logger.error(f"Multiple native agents found with name '{agent_name}'. Failed to update agent style.")
+                sys.exit(1)
+
+            agent_data = agent_data_by_name[0]
+            resolved_agent_id = agent_data.get("id")
+            if resolved_agent_id is None or len(str(resolved_agent_id).strip()) == 0:
+                logger.error(f"Native agent '{agent_name}' is missing an id. Failed to update agent style.")
+                sys.exit(1)
 
         agent_name = agent_data.get("name")
         if agent_name is None or len(str(agent_name).strip()) == 0:
-            agent_name = agent_id
+            agent_name = resolved_agent_id
 
         current_style = agent_data.get("style")
         if current_style is not None and current_style == style.value:
             logger.info(f"Agent '{agent_name}' already uses style '{style.value}'.")
             return
 
-        response = self.get_native_client().update(agent_id, {"style": style.value})
+        response = native_client.update(resolved_agent_id, {"style": style.value})
         _raise_guidelines_warning(response)
 
         if current_style is None:

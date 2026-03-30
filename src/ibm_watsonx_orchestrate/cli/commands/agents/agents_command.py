@@ -411,24 +411,34 @@ def undeploy_agent(
     agents_controller = AgentsController()
     agents_controller.undeploy_agent(name=name)
 
-@agents_app.command(name="change-style", help="Change a native agent's style by id")
+@agents_app.command(name="change-style", help="Change a native agent's style by id or name")
 def change_style(
-    agent_id: Annotated[
-        str,
-        typer.Option("--id", help="Agent id"),
-    ],
     style: Annotated[
         AgentStyle,
         typer.Option("--style", help="The style to apply"),
     ],
+    agent_id: Annotated[
+        str | None,
+        typer.Option("--id", help="Agent id"),
+    ] = None,
+    agent_name: Annotated[
+        str | None,
+        typer.Option("--name", help="Agent name"),
+    ] = None,
 ):
-    """Change the style of a native agent by id.
+    """Change the style of a native agent by id or name.
 
-    :param agent_id: The id of the agent to update.
     :param style: The new style for the agent.
+    :param agent_id: The id of the agent to update.
+    :param agent_name: The name of the agent to update.
     """
+    has_agent_id: bool = agent_id is not None
+    has_agent_name: bool = agent_name is not None
+    if has_agent_id == has_agent_name:
+        raise ValueError("Specify exactly one of --id or --name.")
+
     agents_controller = AgentsController()
-    agents_controller.change_agent_style(agent_id=agent_id, style=style)
+    agents_controller.change_agent_style(agent_id=agent_id, agent_name=agent_name, style=style)
 
 @agents_app.command(name="experimental-connect", help="Connect connections to an agent", hidden=True)
 def experimental_connect_connections(
