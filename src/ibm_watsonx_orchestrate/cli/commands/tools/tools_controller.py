@@ -1177,7 +1177,8 @@ class ToolsController:
             self,
             name: str,
             output_path: str, 
-            zip_file_out: Optional[zipfile.ZipFile] = None, 
+            zip_file_out: Optional[zipfile.ZipFile] = None,
+            toolkit_output_file: Optional[str] = None,
             connections_output_path: str = "/connections", 
             spec: dict | None = None) -> None:
         
@@ -1207,7 +1208,7 @@ class ToolsController:
             tc = ToolkitController()
             tc.export_toolkit(
                 name=toolkit_name,
-                output_file=output_file,
+                output_file=toolkit_output_file or output_file,
                 zip_file_out=zip_file_out,
                 connections_output_path=connections_output_path
             )
@@ -1250,6 +1251,7 @@ class ToolsController:
                 self.export_tool(
                     name=t,
                     output_path=f"{output_file.parent}/{t}",
+                    toolkit_output_file=f"{output_file.parent.parent}/toolkits",
                     zip_file_out=zip_file_out,
                     connections_output_path=connections_output_path
                 )

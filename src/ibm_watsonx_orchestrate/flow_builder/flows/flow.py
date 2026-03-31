@@ -48,7 +48,7 @@ from ..types import (
 )
 
 from ..data_map import DataMap, DataMapSpec
-from ..utils import FIELD_INPUT_SCHEMA_TEMPLATES, FIELD_OUTPUT_SCHEMA_TEMPLATES, _get_json_schema_obj, get_valid_name, import_flow_model, _get_tool_request_body, _get_tool_response_body
+from ..utils import FIELD_INPUT_SCHEMA_TEMPLATES, FIELD_OUTPUT_SCHEMA_TEMPLATES, _get_json_schema_obj, get_valid_name, import_flow_model, _get_tool_request_body, _get_tool_response_body, parse_tool_name_id, normalize_and_validate_tool_spec
 
 from .events import StreamConsumer
 
@@ -400,23 +400,14 @@ class Flow(Node):
             name = name if name is not None and name != "" else tool
 
             if input_schema is None and output_schema is None:
-                # let's identify the correct tool id
-                tool_name = name
-                tool_id = None
-                if tool is not None and isinstance(tool, str):
-                    tool_name = tool
-                    # if the tool id has a colon in it, we need to split it first
-                    if ":" in tool:
-                        tool_name = tool.split(":")[0]
-                        tool_id = tool.split(":")[1]
-
+                tool_name, tool_id = parse_tool_name_id(tool)
                 tool_spec = None
                 # try to retrieve the schema from server
                 if tool_id is not None:
                     try:
                         tool_spec_raw: dict | Literal[""] = self._tool_client.get_draft_by_id(tool_id)
                         if tool_spec_raw and isinstance(tool_spec_raw, dict):
-                            tool_spec = ToolSpec.model_validate(tool_spec_raw)
+                            tool_spec = normalize_and_validate_tool_spec(tool_spec_raw)
                     except ClientAPIException as e:
                         # let's try with name as well before throwing error
                         pass
@@ -425,6 +416,7 @@ class Flow(Node):
                     tool_specs: List[dict] = self._tool_client.get_draft_by_name(tool_name)
                     if (tool_specs is None) or (len(tool_specs) == 0):
                         raise ValueError(f"tool '{tool_name}' not found")
+                    tool_spec = normalize_and_validate_tool_spec(tool_specs[0])
                     
                 elif tool_spec is None:
                     raise ValueError(f"tool id '{tool_id}' not found")

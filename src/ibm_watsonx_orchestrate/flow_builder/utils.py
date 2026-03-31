@@ -2,6 +2,7 @@ import importlib
 import inspect
 import re
 import logging
+import uuid
 from copy import deepcopy
 from typing import Any, Dict, Optional
 
@@ -741,7 +742,7 @@ def get_all_tools_in_flow(flow: dict) -> list[str]:
         if kind == 'tool':
             tool_name = spec.get('tool')
             # the tool name might be the format of name:uuid.. we just need the name
-            tool_name = tool_name.split(':')[0]
+            tool_name = parse_tool_name_id(tool_name)[0]
             if tool_name not in tools:
                 tools.append(tool_name)
         elif kind == 'foreach' or kind == "loop" or kind == "user_flow" or kind == "userflow":
@@ -752,3 +753,65 @@ def get_all_tools_in_flow(flow: dict) -> list[str]:
                 if tool not in tools:
                     tools.append(tool)
     return tools
+
+def is_valid_uuid(value: str) -> bool:
+    """
+    Check if a string is a valid UUID.
+
+    Args:
+        value: String to check
+
+    Returns:
+        True if the string is a valid UUID, False otherwise
+    """
+    try:
+        uuid.UUID(value)
+        return True
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
+def parse_tool_name_id(tool: str) -> tuple[str, str | None]:
+    """
+    Parse tool name and ID from a tool string.
+
+    Supports multiple formats:
+    1. tool_name -> (tool_name, None)
+    2. tool_name:tool_id -> (tool_name, tool_id) where tool_id is a UUID
+    3. MCP_kit:MCP_tool_name -> (MCP_kit:MCP_tool_name, None)
+    4. MCP_kit:MCP_tool_name:MCP_tool_id -> (MCP_kit:MCP_tool_name, MCP_tool_id) where MCP_tool_id is a UUID
+
+    The last portion after a colon is treated as a tool_id only if it's a valid UUID.
+    Otherwise, the entire string is treated as the tool name.
+
+    Args:
+        tool: Tool string to parse
+
+    Returns:
+        (tool_name, tool_id) where tool_id is None if not present or not a UUID
+    """
+    name_part, sep, id_part = tool.rpartition(":")
+
+    if sep and is_valid_uuid(id_part):
+        return name_part, id_part
+
+    return tool, None
+
+def normalize_and_validate_tool_spec(tool_spec_raw: dict) -> ToolSpec:
+    """
+    Normalize and validate a tool spec.
+
+    Removes empty dict {} for schemas before validation to let Pydantic use defaults.
+    This prevents validation errors when the server returns empty schemas.
+
+    Args:
+        tool_spec_raw: Raw tool spec from the server
+
+    Returns:
+        Validated ToolSpec object
+    """
+    if 'output_schema' in tool_spec_raw and tool_spec_raw['output_schema'] == {}:
+        del tool_spec_raw['output_schema']
+    if 'input_schema' in tool_spec_raw and tool_spec_raw['input_schema'] == {}:
+        del tool_spec_raw['input_schema']
+    return ToolSpec.model_validate(tool_spec_raw)
