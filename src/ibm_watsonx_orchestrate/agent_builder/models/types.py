@@ -14,6 +14,7 @@ class  ModelProvider(str, Enum):
     COHERE = 'cohere'
     GOOGLE = 'google'
     VERTEX_AI = 'vertex-ai'
+    VLLM = 'vllm'
     GROQ = 'groq'
     HUGGINGFACE = 'huggingface'
     MISTRAL_AI = 'mistral-ai'
